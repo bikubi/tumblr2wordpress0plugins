@@ -46,7 +46,6 @@ function qSpawn (cmd, args, quiet, noncritical) {
 
 function postMedia (wpPostId, mediaUrl, title, caption, isFeatured, json) {
 	var 
-		//photoUrl = photo.original_size.url,
 		srcFn = mediaUrl.match(/[^\/]+$/)[0],
 		//dstFn = post.slug + '.' + srcFn,
 		localPath = url + '/' + srcFn,
@@ -133,46 +132,13 @@ fs.readdir(url, function (err, items) {
 		qSpawn('wp', ['post', 'meta', 'update', wpId, 'tumblr_tags', post.tags.join(',').replace('\\', '\\\\')], false);
 		qSpawn('wp', ['post', 'term', 'set',    wpId, 'category',    'tumblr', tumblrName, 'tumblr_' + post.type], false);
 		if (post.photos) post.photos.forEach(function (photo, photoIdx) {
-			/*var 
-				photoUrl = photo.original_size.url,
-				srcFn = photoUrl.match(/[^\/]+$/)[0],
-				dstFn = post.slug + '.' + srcFn,
-				localPath = url + '/' + srcFn,
-				wpPhotoId = getIdByGuid(photoUrl),
-				mediaArgs;*/
 			postMedia(wpId, photo.original_size.url, post.summary, photo.caption, photoIdx === 0, photo);
-			/*
-			console.log(localPath, 'wpId', wpId, 'wpPhotoId', wpPhotoId);
-			if (!fs.existsSync(localPath)) {
-				qSpawn('wget', [photoUrl, '-O', localPath], false);
-			}
-			if (wpPhotoId) {
-				qSpawn('wp', ['post', 'delete', wpPhotoId, '--force'], false);
-			}
-			mediaArgs = ['media', 'import', localPath, '--post_id=' + wpId,
-				'--title=' + post.summary, '--porcelain'
-			];
-			if (photo.caption) {
-				mediaArgs.push('caption', photo.caption);
-			}
-			if (photoIdx === 0) {
-				mediaArgs.push('--featured_image');
-			}
-			wpPhotoId = qSpawn('wp', mediaArgs);
-			qSpawn('wp', ['db', 'query', 'UPDATE `' + tablePosts + '` SET guid=\'' + photoUrl + '\' WHERE ID=' + wpPhotoId], false);
-			qSpawn('wp', ['post', 'meta', 'update', wpPhotoId, 'tumblr_photo', JSON.stringify(photo)], false);
-			*/
 		});
 		if (post.player) {
 			post.player.sort(function (a, b) {
 				return b.width - a.width;
 			});
 			qSpawn('wp', ['post', 'update', wpId, '--post_content=' + post.player[0].embed_code]);
-			//post.thumbnail_url
-			//post.video_url | wget
-			//post.caption | contnt
-			//post.summary | title
-			console.log(post.player);
 			postMedia(wpId, post.video_url, post.summary, null, false, '');
 			postMedia(wpId, post.thumbnail_url, post.summary, null, true, '');
 		}
