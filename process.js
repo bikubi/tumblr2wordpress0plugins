@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 
+if (process.argv.length < 3) {
+	console.error('USAGE: process.js PATH [FILTER]\nPATH is a directory that contains json-files (no trailing slash!)\nFILTER is a tumblr post id (int) or a tumblr post type (photo, photoset, video, text, quote...)')
+	process.exit(1);
+}
+
 var
 	url = process.argv[2],
 	filterPosts = process.argv[3],
@@ -99,6 +104,7 @@ fs.readdir(url, function (err, items) {
 			postType = 'photoset';
 		}
 		types[postType] = types[postType] + 1 || 1;
+		post.type_proc = postType;
 	});
 	console.log('post types: ', types);
 	posts.forEach(function (post) {
@@ -122,15 +128,19 @@ fs.readdir(url, function (err, items) {
 		}
 		qSpawn('wp', ['post', 'update', wpId,
 			'--post_title=' + post.summary,
-			'--post_content=' + (post.caption ? post.caption : '&nbsp;'),
-			'--post_date=' + post.date.substr(0, 19)
+			'--post_content=' + (post.type === 'text' ? post.body : (post.caption ? post.caption : '&nbsp;')),
+			'--post_status=publish'
+		], false);
+		qSpawn('wp', ['post', 'update', wpId,
+			'--post_date=' + post.date.substr(0, 19),
+			'--post_date_gmt=' + post.date.substr(0, 19)
 		], false);
 		qSpawn('wp', ['post', 'meta', 'update', wpId, 'tumblr_id',   post.id], false);
 		if (false === qSpawn('wp', ['post', 'meta', 'update', wpId, 'tumblr_post', JSON.stringify(post)], false, true)) {
 			qSpawn('wp', ['post', 'meta', 'update', wpId, 'tumblr_post', Buffer.from(JSON.stringify(post)).toString('base64')], false, false);
 		}
-		qSpawn('wp', ['post', 'meta', 'update', wpId, 'tumblr_tags', post.tags.join(',').replace('\\', '\\\\')], false);
-		qSpawn('wp', ['post', 'term', 'set',    wpId, 'category',    'tumblr', tumblrName, 'tumblr_' + post.type], false);
+		qSpawn('wp', ['post', 'meta', 'update', wpId, 'tumblr_tags', post.tags.join(',').replace('\\', '')], false);
+		qSpawn('wp', ['post', 'term', 'set',    wpId, 'category',    'tumblr', tumblrName, 'tumblr_' + post.type_proc], false);
 		if (post.photos) post.photos.forEach(function (photo, photoIdx) {
 			postMedia(wpId, photo.original_size.url, post.summary, photo.caption, photoIdx === 0, photo);
 		});
@@ -139,7 +149,9 @@ fs.readdir(url, function (err, items) {
 				return b.width - a.width;
 			});
 			qSpawn('wp', ['post', 'update', wpId, '--post_content=' + post.player[0].embed_code]);
-			postMedia(wpId, post.video_url, post.summary, null, false, '');
+			if (post.video_type === 'tumblr') {
+				postMedia(wpId, post.video_url, post.summary, null, false, '');
+			}
 			postMedia(wpId, post.thumbnail_url, post.summary, null, true, '');
 		}
 
