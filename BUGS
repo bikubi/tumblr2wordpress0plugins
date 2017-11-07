@@ -1,2 +1,0 @@
-- when a tumblr tag contains a backslash, there is too much weird escpaing going on. not investigating, json cleaned manually
-- sometimes wpcli chokes on a meta update with tumblr_post json - could not find any reason, workaround: paste the json into custom field in wp-admin
